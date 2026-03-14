@@ -1,11 +1,5 @@
 """
 Kitchen Alchemist v1.0 — A retro cooking companion for UniHiker M10
-- 6 timers (4 stove + 2 oven)
-- Measurement converter (cups ↔ grams ↔ ml)
-- Recipe explorer with spice pairings
-- Meat temps guide (°F/°C)
-- Voice memos (text-based, timestamped)
-- Retro UI: mustard yellow, leather brown, olive green
 
 Usage: Save as `kitchen_alchemist.py` and run on UniHiker
 """
@@ -17,13 +11,9 @@ import threading
 from datetime import datetime
 
 # ==============================
-# 🎨 Retro Color Palette & Constants
+# 🎨 Colors & Constants
 # ==============================
-COLOR_BG = "#F5E6C8"
-COLOR_PRIMARY = "#D4A017"
 COLOR_ACCENT = "#8B4513"
-COLOR_SUCCESS = "#2E8B57"
-
 MEMO_DIR = "/home/root/kitchen_memos"
 CSV_GROCERY = f"{MEMO_DIR}/grocery.csv"
 os.makedirs(MEMO_DIR, exist_ok=True)
@@ -35,27 +25,25 @@ gui = GUI()
 timers_active = [False] * 6
 timer_times = [0] * 6
 last_timer_total = [300, 300, 300, 300, 600, 600]
-timer_labels = ["Stove 1", "Stove 2", "Stove 3", "Stove 4", "Oven 1", "Oven 2"]
+timer_labels = ["Stove1", "Stove2", "Stove3", "Stove4", "Oven1", "Oven2"]
 alarm_beep_count = [0] * 6
 current_category = "Pasta"
 
 SPICE_PAIRINGS = {
     "basil": ["tomato", "garlic", "olive oil"],
     "cumin": ["chicken", "beans", "rice"],
-    "thyme": ["mushrooms", "potatoes", "lemon"],
 }
 
 MEAT_TEMPS = [
     ("Chicken breast/thigh", 165),
     ("Beef steak (medium)", 145),
-    ("Pork chop/loin", 145),
 ]
 
 RECIPES = {
     "Pasta": [
         {"name": "Garlic Shrimp Pasta",
          "ingredients": ["shrimp", "garlic", "olive oil", "parsley", "pasta"],
-         "steps": "1. Boil pasta\n2. Sauté garlic in oil\n3. Add shrimp, cook 2-3 min"}
+         "steps": "1. Boil pasta\n2. Sauté garlic in oil"}
     ],
 }
 
@@ -66,12 +54,11 @@ tab_buttons = []
 current_tab = 0
 
 def create_tabs():
-    tab_names = ["⏱️ Timer", "⚖️ Converter", "🍳 Recipes", "🥩 Meats", "🎤 Memos"]
+    tab_names = ["Timer", "Converter", "Recipes", "Meats", "Memos"]
     x_start = 20
     btn_width = (320 - 40) // len(tab_names)
     
     for i, name in enumerate(tab_names):
-        # Fixed: removed color parameter - unihiker doesn't support it
         btn = gui.add_button(
             text=name,
             x=x_start + i * btn_width,
@@ -85,8 +72,6 @@ def create_tabs():
 def switch_tab(tab_idx):
     global current_tab
     current_tab = tab_idx
-    
-    # Update button colors - but unihiker doesn't support this either, so skip
     
     gui.clear()
     create_tabs()
@@ -105,6 +90,8 @@ def switch_tab(tab_idx):
 # ==============================
 # ⏱️ Timer Tab
 # ==============================
+timer_texts = []
+
 def format_time(seconds):
     m, s = divmod(int(seconds), 60)
     return f"{m:02d}:{s:02d}"
@@ -115,8 +102,8 @@ def update_timers():
             if timers_active[i] and timer_times[i] > 0:
                 timer_times[i] -= 1
                 try:
-                    if hasattr(show_timer_tab, 'timer_labels'):
-                        show_timer_tab.timer_texts[i].config(text=format_time(timer_times[i]))
+                    if i < len(timer_texts):
+                        timer_texts[i].config(text=format_time(timer_times[i]))
                 except:
                     pass
                 
@@ -153,7 +140,6 @@ def reset_timer(i):
 def show_converter_tab():
     gui.add_label(text="Measurement Converter", x=160, y=60, anchor="mt", color=COLOR_ACCENT)
     
-    # Unit selector
     selected_unit = [0]
     
     def set_unit(unit_idx):
@@ -169,7 +155,6 @@ def show_converter_tab():
             onclick=lambda idx=i: set_unit(idx)
         )
     
-    # Value display
     value_label = gui.add_label(text="1 cup", x=160, y=130, anchor="mt", color="#333")
     
     def adjust_value(delta):
@@ -178,7 +163,7 @@ def show_converter_tab():
         value_label.config(text=f"{new_val} {['cups', 'grams', 'ml'][selected_unit[0]]}")
     
     gui.add_button(text="+", x=130, y=150, w=25, h=30, onclick=lambda: adjust_value(0.25))
-    gui.add_button(text="−", x=165, y=150, w=25, h=30, onclick=lambda: adjust_value(-0.25))
+    gui.add_button(text="-", x=165, y=150, w=25, h=30, onclick=lambda: adjust_value(-0.25))
     
     conv_label = gui.add_label(
         text="≈ 120g (flour)",
@@ -196,7 +181,6 @@ def show_recipes_tab():
     
     gui.add_label(text="Recipe Explorer", x=160, y=60, anchor="mt", color=COLOR_ACCENT)
     
-    # Category buttons
     categories = ["Pasta", "Eggs", "Rice Bowl", "Salad", "Oatmeal"]
     for i, cat in enumerate(categories):
         gui.add_button(
@@ -208,7 +192,6 @@ def show_recipes_tab():
             onclick=lambda c=cat: set_category(c)
         )
     
-    # Recipe display
     recipe_label = gui.add_label(
         text="Loading...",
         x=160,
@@ -227,7 +210,7 @@ def show_recipes_tab():
     # Spice section
     gui.add_label(text="Spice Pairings:", x=40, y=210, anchor="w", color="#8B4513")
     
-    spices = ["basil", "cumin", "thyme"]
+    spices = ["basil", "cumin"]
     for i, spice in enumerate(spices):
         def show_spice(s=spice):
             pairings = SPICE_PAIRINGS.get(s, [])
@@ -243,7 +226,6 @@ def show_recipes_tab():
             onclick=show_spice
         )
     
-    # Add to grocery list button
     def save_to_grocery():
         recipes = RECIPES.get(current_category, [])
         if not recipes:
@@ -268,7 +250,7 @@ def show_recipes_tab():
             f.writelines(new_lines)
         
         gui.add_label(
-            text="✅ Added to Grocery List!",
+            text="Added to Grocery List!",
             x=160,
             y=290,
             anchor="mt",
@@ -276,7 +258,7 @@ def show_recipes_tab():
         )
     
     gui.add_button(
-        text="🛒 Add to Grocery List",
+        text="Add to Grocery List",
         x=40,
         y=290,
         w=250,
@@ -300,7 +282,7 @@ def show_meats_tab():
         y_pos = y_base + i * 35
         
         gui.add_label(
-            text=f"{meat}: {temp_f}°F",
+            text=f"{meat}: {temp_f}F",
             x=20,
             y=y_pos,
             anchor="w",
@@ -310,7 +292,7 @@ def show_meats_tab():
         temp_c = int((temp_f - 32) * 5 / 9)
         def make_convert(temp_c=temp_c):
             return lambda: gui.add_label(
-                text=f"≈ {temp_c}°C",
+                text=f"≈ {temp_c}C",
                 x=280,
                 y=y_pos + 5,
                 anchor="w",
@@ -318,7 +300,7 @@ def show_meats_tab():
             )
         
         gui.add_button(
-            text=f"{temp_c}°C",
+            text=f"{temp_c}C",
             x=250,
             y=y_pos,
             w=60,
@@ -351,7 +333,7 @@ def show_memo_tab():
     
     recording = [False]
     record_btn = gui.add_button(
-        text="🎤 Record",
+        text="Record",
         x=40,
         y=160,
         w=250,
@@ -363,10 +345,10 @@ def show_memo_tab():
         recording[0] = not recording[0]
         
         if recording[0]:
-            record_btn.config(text="⏹️ Stop")
+            record_btn.config(text="Stop")
             threading.Thread(target=record_timer, args=(record_btn,), daemon=True).start()
         else:
-            record_btn.config(text="🎤 Record")
+            record_btn.config(text="Record")
     
     def record_timer(btn):
         import time
@@ -374,7 +356,7 @@ def show_memo_tab():
             btn.config(text=f"Recording... {i}s")
             time.sleep(1)
         
-        btn.config(text="🎤 Record")
+        btn.config(text="Record")
         recording[0] = False
     
     text_entry = gui.add_textbox(
@@ -397,7 +379,7 @@ def show_memo_tab():
             f.write(f"[{timestamp}] {text}\n\n")
         
         gui.add_label(
-            text="✅ Memo saved!",
+            text="Memo saved!",
             x=160,
             y=300,
             anchor="mt",
@@ -405,7 +387,7 @@ def show_memo_tab():
         )
     
     gui.add_button(
-        text="💾 Save Memo",
+        text="Save Memo",
         x=40,
         y=290,
         w=250,
@@ -416,6 +398,60 @@ def show_memo_tab():
 # ==============================
 # 🏁 Main Entry Point
 # ==============================
+def show_timer_tab():
+    """Display the Timer tab UI"""
+    gui.add_label(text="Kitchen Alchemist", x=160, y=60, anchor="mt", color="#8B4513")
+    
+    # Grid layout for 6 timers (2 columns × 3 rows)
+    grid_x = [40, 180]
+    grid_y = [90, 150, 210]
+    
+    global timer_texts
+    timer_texts = []
+    
+    for i in range(6):
+        row = i // 2
+        col = i % 2
+        
+        x_base = grid_x[col]
+        y_base = grid_y[row]
+        
+        # Timer label
+        gui.add_label(text=timer_labels[i], x=x_base + 40, y=y_base - 15, anchor="mt", color="#8B4513")
+        
+        # Time display
+        time_text = gui.add_label(
+            text=format_time(last_timer_total[i]),
+            x=x_base + 40, 
+            y=y_base,
+            anchor="mt",
+            color="#333",
+            font=("DejaVuSansMono", 22, "bold")
+        )
+        timer_texts.append(time_text)
+        
+        # Start/Pause button
+        gui.add_button(
+            text="Start",
+            x=x_base,
+            y=y_base + 40,
+            w=60,
+            h=30,
+            onclick=lambda idx=i: (
+                pause_timer(idx) if timers_active[idx] else start_timer(idx)
+            )
+        )
+        
+        # Reset button
+        gui.add_button(
+            text="Reset",
+            x=x_base + 80,
+            y=y_base + 40,
+            w=60,
+            h=30,
+            onclick=lambda idx=i: reset_timer(idx)
+        )
+
 if __name__ == "__main__":
     threading.Thread(target=update_timers, daemon=True).start()
     
