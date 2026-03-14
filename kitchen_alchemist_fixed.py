@@ -467,7 +467,7 @@ def show_recipes_tab():
             recipe_label.config(text=text)
     
     def cycle_recipe():
-        nonlocal current_category
+        global current_category  # Changed from nonlocal to global
         recipes = RECIPES.get(current_category, [])
         if len(recipes) > 1:
             # Simple rotation - in real app would track index
